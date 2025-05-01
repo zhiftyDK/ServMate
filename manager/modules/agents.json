@@ -1,0 +1,37 @@
+{
+  "DESKTOP-J54K1DU:172.20.10.2": {
+    "hostname": "DESKTOP-J54K1DU",
+    "ip": "172.20.10.2",
+    "cpu_model": "AMD Ryzen 7 4700U with Radeon Graphics",
+    "cpu_cores": 8,
+    "total_mem": 16348794880,
+    "disk_info": [
+      {
+        "fs": "C:",
+        "used": 57940561920,
+        "size": 511310819328
+      }
+    ],
+    "gpu_model": "AMD Radeon(TM) Graphics"
+  },
+  "DESKTOP-SVB43VP:192.168.1.75": {
+    "hostname": "DESKTOP-SVB43VP",
+    "ip": "192.168.1.75",
+    "cpu_model": "Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz",
+    "cpu_cores": 6,
+    "total_mem": 34276478976,
+    "disk_info": [
+      {
+        "fs": "C:",
+        "used": 775302266880,
+        "size": 1022037286912
+      },
+      {
+        "fs": "E:",
+        "used": 448340111360,
+        "size": 500106784768
+      }
+    ],
+    "gpu_model": "NVIDIA GeForce RTX 2060"
+  }
+}

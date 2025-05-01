@@ -1,19 +1,23 @@
 // index.js
 const express = require('express');
 const path = require('path');
-const manager = require('./manager');
+const manager = require('./modules/manager');
+const authRoutes = require('./modules/auth');
+const { authenticateToken } = require('./modules/auth');
 
 const HTTP_PORT = 3000;
 
-manager.startManager({ verbose: true });  // Start discovery
+manager.startManager({ verbose: true });
 
 const app = express();
-
-// Optional: serve a static frontend UI
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API route to get agents
-app.get('/api/agents', (req, res) => {
+// API: Auth routes
+app.use('/api', authRoutes);
+
+// API: Protected route (GET /api/agents requires valid token)
+app.get('/api/agents', authenticateToken, (req, res) => {
   res.json(manager.getAgents());
 });
 
