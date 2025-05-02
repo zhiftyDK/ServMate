@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Page</title>
+    <style>
+        body {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Agent Information</h1>
+    <p>Agent ID: <span id="agentIdDisplay">Loading...</span></p>
+
+    <script>
+        // Get the URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // Get the value of 'agentid' from the query string
+        const agentId = urlParams.get('agentid');
+
+        // Display the agentId on the page
+        document.getElementById('agentIdDisplay').textContent = agentId || 'No agent ID found';
+    </script>
+</body>
+</html>

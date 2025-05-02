@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Agent Overview Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+        }
+
+        /* Remove height + flex from container-fluid */
+        .container-fluid {
+            padding: 1rem;
+        }
+
+        /* Cards styling */
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            background-color: rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+
+        .card-body {
+            font-size: 2rem;
+            color: #fff;
+        }
+
+        /* Smaller spacing between columns */
+        .row {
+            --bs-gutter-x: 1.5rem;
+        }
+
+        .status-count {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* Agent list */
+        .agent-list {
+            overflow-y: auto;
+            padding: 1rem;
+            max-height: 60vh;
+            /* reasonable scroll limit */
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+        }
+
+        .agent-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .agent-card .status-online {
+            color: #198754;
+        }
+
+        .agent-card .status-offline {
+            color: #dc3545;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .agent-list {
+                max-height: none;
+                /* remove max-height on small screens to let full page scroll */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <!-- Dashboard Stats Section -->
+        <div class="row">
+            <!-- Total Agents -->
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header">Total Agents</div>
+                    <div class="card-body">
+                        <div id="total-count" class="status-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Online Agents -->
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header">Online Agents</div>
+                    <div class="card-body">
+                        <div id="online-count" class="status-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Offline Agents -->
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header">Offline Agents</div>
+                    <div class="card-body">
+                        <div id="offline-count" class="status-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent List Section -->
+        <h4 class="text-center text-white">Agents</h4>
+        <div class="agent-list">
+            <div id="agents-container"></div> <!-- List of agents will go here -->
+        </div>
+    </div>
+
+    <script>
+        function selectAgent(agentid) {
+            const page = `agent.html?agentid=${agentid}`
+            window.parent.postMessage({ page: page }, '*');
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fetch agents from the server with token in headers
+            function fetchAgents() {
+                fetch('/api/agents', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem("token")}`,  // Include token in the Authorization header
+                    },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const configured_agents = data.configured_agents;
+                        if (configured_agents) {
+                            delete data["configured_agents"]
+                            for (const id in data) {
+                                // Check if the agent is not in the configured agents list
+                                if (!configured_agents.hasOwnProperty(id)) {
+                                    delete data[id];  // Remove the agent if it's not in configuredAgents
+                                }
+                            }
+                        } else {
+                            return;
+                        }
+                        const total = Object.keys(data).length;
+                        const online = Object.values(data).filter(agent => agent.status === 'online').length;
+                        const offline = total - online;
+
+                        // Update counts for Total, Online, Offline
+                        document.getElementById('total-count').textContent = total;
+                        document.getElementById('online-count').textContent = online;
+                        document.getElementById('offline-count').textContent = offline;
+
+                        // Update agent list display
+                        const agentsContainer = document.getElementById('agents-container');
+                        agentsContainer.innerHTML = ''; // Clear the current list
+
+                        Object.values(data).forEach(agent => {
+                            const statusClass = agent.status === 'online' ? 'status-online' : 'status-offline';
+                            const agentCard = `
+                    <div class="agent-card", onclick="selectAgent('${agent.hostname}:${agent.ip}')">
+                        <h5 class="text-white">${configured_agents[`${agent.hostname}:${agent.ip}`].custom_name}</h5>
+                        <p class="text-white"><strong>IP:</strong> ${agent.ip}</p>
+                        <p class="text-white"><strong>CPU:</strong> ${agent.cpu_model}</p>
+                        <p class="text-white"><strong>GPU:</strong> ${agent.gpu_model}</p>
+                        <p class="text-white"><strong>Status:</strong> <span class="${statusClass}">${agent.status}</span></p>
+                    </div>
+                `;
+                            agentsContainer.innerHTML += agentCard;
+                        });
+                    })
+                    .catch(err => console.error('Error fetching agents:', err));
+            }
+
+            // Fetch agents initially and then every 15 seconds
+            fetchAgents();
+            setInterval(fetchAgents, 5000); // Refresh every 15 seconds
+        });
+    </script>
+
+</body>
+</html>

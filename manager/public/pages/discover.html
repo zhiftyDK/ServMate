@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Discover Agents</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+        }
+
+        .container-fluid {
+            padding: 1rem;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            background-color: rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .card-header {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+
+        .card-body {
+            font-size: 2rem;
+            color: #fff;
+        }
+
+        .row {
+            --bs-gutter-x: 1.5rem;
+        }
+
+        .status-count {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .agent-list {
+            overflow-y: auto;
+            padding: 1rem;
+            max-height: 60vh;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .agent-card .status-online {
+            color: #198754;
+        }
+
+        .agent-card .status-offline {
+            color: #dc3545;
+        }
+
+        .btn-configure {
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .agent-list {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <!-- Dashboard Stats Section -->
+        <div class="row">
+            <div class="col-md-12 mb-3">
+                <div class="card">
+                    <div class="card-header text-center">Discovered Unconfigured Agents</div>
+                    <div class="card-body text-center">
+                        <div id="discovered-count" class="status-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent List Section -->
+        <div class="agent-list">
+            <div id="agents-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            function fetchDiscoveredAgents() {
+                fetch('/api/agents', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                    },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        const configured_agents = data.configured_agents;
+                        if (configured_agents) {
+                            delete data["configured_agents"]
+                            for (const id in data) {
+                                // Check if the agent is not in the configured agents list
+                                if (configured_agents.hasOwnProperty(id)) {
+                                    delete data[id];  // Remove the agent if it's not in configuredAgents
+                                }
+                            }
+                        }
+                        const discoveredCount = Object.keys(data).length;
+                        document.getElementById('discovered-count').textContent = discoveredCount;
+
+                        const agentsContainer = document.getElementById('agents-container');
+                        agentsContainer.innerHTML = '';
+
+                        Object.values(data).forEach(agent => {
+                            const statusClass = agent.status === 'online' ? 'status-online' : 'status-offline';
+                            const agentCard = `
+                        <div class="agent-card">
+                            <h5 class="text-white">${agent.hostname}</h5>
+                            <p class="text-white"><strong>IP:</strong> ${agent.ip}</p>
+                            <p class="text-white"><strong>CPU:</strong> ${agent.cpu_model}</p>
+                            <p class="text-white"><strong>GPU:</strong> ${agent.gpu_model}</p>
+                            <p class="text-white"><strong>Status:</strong> <span class="${statusClass}">${agent.status}</span></p>
+                            <button class="btn btn-success btn-sm btn-configure" data-id="${agent.hostname}:${agent.ip}">Configure</button>
+                        </div>
+                    `;
+                            agentsContainer.innerHTML += agentCard;
+                        });
+
+                        // Attach event listeners to "Configure" buttons
+                        document.querySelectorAll('.btn-configure').forEach(button => {
+                            button.addEventListener('click', () => {
+                                const agentid = button.getAttribute('data-id');
+                                const customName = prompt('Enter a custom name for this agent:');
+                                if (customName && customName.trim() !== '') {
+                                    configureAgent(agentid, customName.trim());
+                                }
+                            });
+                        });
+                    })
+                    .catch(err => console.error('Error fetching discovered agents:', err));
+            }
+
+            function configureAgent(agentid, customName) {
+                fetch('/api/configure-agent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                    },
+                    body: JSON.stringify({ agentid: agentid, custom_name: customName })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            fetchDiscoveredAgents(); // Refresh list
+                        } else {
+                            alert('Failed to configure agent.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error configuring agent:', err);
+                        alert('Error configuring agent.');
+                    });
+            }
+
+            fetchDiscoveredAgents();
+            setInterval(fetchDiscoveredAgents, 15000);
+        });
+    </script>
+
+</body>
+</html>

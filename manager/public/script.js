@@ -57,3 +57,40 @@ const profileBtn = document.getElementById("profileButton");
 profileBtn.addEventListener("click", () => {
     window.location.href = "profile.html"
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebarLinks = document.querySelectorAll('a[data-page]');
+  const iframe = document.getElementById('contentIframe');
+
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.getAttribute('data-page');
+      iframe.src = '/pages/' + page;
+    });
+  });
+
+  // Optional: Load a default page on first load
+  iframe.src = '/pages/overview.html';
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const iframe = document.getElementById('contentIframe');
+
+  window.addEventListener('message', (event) => {
+    // Check that the message is from a trusted origin (if needed)
+    if (event.origin !== window.location.origin) {
+      return;
+    }
+
+    const { page } = event.data;
+
+    if (page) {
+      iframe.src = '/pages/' + page;
+    }
+  });
+
+  // Optional: Load a default page on first load
+  iframe.src = '/pages/overview.html';
+});
+

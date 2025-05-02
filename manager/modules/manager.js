@@ -3,8 +3,9 @@ const dgram = require('dgram');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 5005;
+const PORT = 50000;
 const AGENTS_FILE = path.join(__dirname, 'agents.json');
+const CONFIGURED_AGENTS_FILE = path.join(__dirname, 'configured_agents.json');
 const OFFLINE_TIMEOUT = 15000; // 15 sec
 
 let agents = {};
@@ -15,6 +16,28 @@ function loadAgents() {
     if (fs.existsSync(AGENTS_FILE)) {
         agents = JSON.parse(fs.readFileSync(AGENTS_FILE));
     }
+}
+
+function configureAgent(agentid, customname) {
+    const toSave = {};
+    for (const id in agents) {
+        if (agentid == id) {
+            toSave[id] = {
+            custom_name: customname
+            };
+        }
+    }
+    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(toSave, null, 2));
+}
+
+function unconfigureAgent(agentid) {
+    const toSave = {};
+    for (const id in agents) {
+        if (agentid !== id) {
+            toSave[id] = agents[id];
+        }
+    }
+    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(toSave, null, 2));
 }
 
 // Save static agent info to disk
@@ -49,6 +72,10 @@ function getAgents() {
         status: isOnline ? 'online' : 'offline',
         last_seen_secs: Math.floor(lastSeen / 1000)
         };
+    }
+    if (fs.existsSync(CONFIGURED_AGENTS_FILE)) {
+        const configured_agents = JSON.parse(fs.readFileSync(CONFIGURED_AGENTS_FILE));
+        result["configured_agents"] = configured_agents
     }
     return result;
 }
@@ -94,5 +121,7 @@ function startManager(options = {}) {
 // Export public API
 module.exports = {
     startManager,
-    getAgents
+    getAgents,
+    configureAgent,
+    unconfigureAgent
 };

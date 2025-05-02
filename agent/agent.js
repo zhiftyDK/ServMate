@@ -4,7 +4,7 @@ const os = require('os');
 const si = require('systeminformation');
 
 const AGENT_BROADCAST_INTERVAL = 3000; // 3 seconds
-const BROADCAST_PORT = 5005;
+const BROADCAST_PORT = 50000;
 const BROADCAST_ADDRESS = '255.255.255.255';
 
 let lastIdle = 0;
