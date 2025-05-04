@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSH Web Terminal</title>
+
+    <!-- xterm.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.13.0/css/xterm.css" />
+
+    <style>
+        body {
+            background-color: black;
+            padding: 1rem;
+        }
+
+        #terminal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+
+    <!-- xterm.js JS -->
+    <script src="https://cdn.jsdelivr.net/npm/xterm@4.13.0/lib/xterm.js"></script>
+
+    <script>
+        const terminal = new Terminal({
+            cursorBlink: true
+        });
+
+        terminal.open(document.getElementById('terminal'));
+
+        // Your perfect reference dimensions
+        const perfectWidth = 1920;
+        const perfectHeight = 911;
+        const perfectCols = 210;
+        const perfectRows = 50;
+
+        const heightPerRow = perfectHeight / perfectRows;
+        const widthPerCol = perfectWidth / perfectCols;
+
+        function fitTerminal() {
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+
+            let newRows = Math.floor(height / heightPerRow);
+            let newCols = Math.floor(width / widthPerCol);
+
+            terminal.resize(newCols, newRows);
+        }
+
+        window.addEventListener('resize', fitTerminal);
+
+        // Initial fit
+        fitTerminal();
+
+        // Set up the WebSocket connection to the server
+        const socket = new WebSocket('ws://localhost:4500'); // Your server URL
+
+        socket.onopen = () => {
+            terminal.writeln("Connected to SSH server. You can start typing commands...");
+        };
+
+        socket.onerror = (err) => {
+            terminal.writeln(`Error: ${err.message}`);
+        };
+
+        socket.onmessage = (event) => {
+            terminal.write(event.data);
+        };
+
+        socket.onclose = () => {
+            terminal.writeln("Connection closed.");
+        };
+
+        // Send user input to WebSocket (SSH server)
+        terminal.onData(data => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(data);
+            }
+        });
+    </script>
+
+</body>
+</html>

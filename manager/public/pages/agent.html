@@ -2,27 +2,307 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Page</title>
+    <title>Agent Dashboard</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <style>
-        body {
-            color: white;
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #fff;
+            font-family: system-ui, sans-serif;
+        }
+
+        /* Container for the entire page */
+        .container-fluid {
+            padding: 1rem;
+        }
+
+        /* Card styling to match overview.html */
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            background-color: rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            color: #fff;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+
+        /* Chart section styling */
+        .chart-container {
+            margin-top: 1rem;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .chart-container {
+                margin-top: 1rem;
+            }
         }
     </style>
 </head>
+
 <body>
-    <h1>Agent Information</h1>
-    <p>Agent ID: <span id="agentIdDisplay">Loading...</span></p>
+    <div class="container-fluid">
+        <!-- System Info Section -->
+        <div class="card">
+            <h5>System Info</h5>
+            <p><strong>Hostname:</strong> <span id="hostname"></span></p>
+            <p><strong>IP:</strong> <span id="ip"></span></p>
+            <p><strong>CPU:</strong> <span id="cpu_model"></span> (<span id="cpu_cores"></span> cores)</p>
+            <p><strong>GPU:</strong> <span id="gpu_model"></span></p>
+            <p><strong>Uptime:</strong> <span id="uptime"></span></p>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="row chart-container">
+            <div class="col-md-6">
+                <div class="card">
+                    <h5>CPU Load</h5>
+                    <div id="cpu-chart"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <h5>Memory Usage</h5>
+                    <div id="memory-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk Usage Section -->
+        <div class="row chart-container" id="disk-chart-container">
+            <!-- Disk charts will be injected here dynamically -->
+        </div>
+    </div>
 
     <script>
-        // Get the URL query parameters
-        const urlParams = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(window.location.search);
+        const agentid = params.get('agentid');
 
-        // Get the value of 'agentid' from the query string
-        const agentId = urlParams.get('agentid');
+        if (!agentid) {
+            document.body.innerHTML = '<h3 class="text-danger text-center">Invalid agentid.</h3>';
+            throw new Error('Missing agentid in URL params');
+        }
 
-        // Display the agentId on the page
-        document.getElementById('agentIdDisplay').textContent = agentId || 'No agent ID found';
+        // Elements to be updated
+        const elements = {
+            hostname: document.getElementById('hostname'),
+            ip: document.getElementById('ip'),
+            cpu_model: document.getElementById('cpu_model'),
+            cpu_cores: document.getElementById('cpu_cores'),
+            gpu_model: document.getElementById('gpu_model'),
+            uptime: document.getElementById('uptime')
+        };
+
+        // Store disk colors and previous usage once generated
+        const diskColors = {};
+        const previousDiskUsage = {};
+
+        // ApexCharts setup for CPU and Memory
+        const cpuChart = new ApexCharts(document.querySelector("#cpu-chart"), {
+            chart: { type: 'radialBar', height: 300 },
+            series: [0],
+            labels: ['CPU Load %'],
+            plotOptions: {
+                radialBar: {
+                    hollow: { size: '70%' },
+                    dataLabels: {
+                        value: {
+                            fontWeight: 'bold',
+                            color: '#fff'  // Set the text color to white
+                        }
+                    }
+                }
+            },
+            colors: ['#00E396'],
+        });
+
+        const memoryChart = new ApexCharts(document.querySelector("#memory-chart"), {
+            chart: { type: 'radialBar', height: 300 },
+            series: [0],
+            labels: ['Memory Usage %'],
+            plotOptions: {
+                radialBar: {
+                    hollow: { size: '70%' },
+                    dataLabels: {
+                        value: {
+                            fontWeight: 'bold',
+                            color: '#fff'  // Set the text color to white
+                        }
+                    }
+                }
+            },
+            colors: ['#FEB019']
+        });
+
+        cpuChart.render();
+        memoryChart.render();
+
+        // Utility functions
+        function formatBytes(bytes) {
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / (3600 * 24));
+            seconds %= 3600 * 24;
+            const hours = Math.floor(seconds / 3600);
+            seconds %= 3600;
+            const minutes = Math.floor(seconds / 60);
+            seconds = seconds % 60;
+            return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        // Function to sanitize disk name to be used as a valid CSS selector
+        function sanitizeDiskName(name) {
+            return name.replace(/[^a-zA-Z0-9-_]/g, '-');
+        }
+
+        // Hash function to generate a number from a string
+        function hashStringToNumber(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = (hash << 5) - hash + char;
+            }
+            return hash;
+        }
+
+        // Generate a distinct color based on the disk name
+        function getColorForDisk(diskName) {
+            const hash = hashStringToNumber(diskName);
+
+            // Generate RGB components from the hash value, ensuring they are distributed widely
+            const r = (hash & 0xFF0000) >> 16; // Red component
+            const g = (hash & 0x00FF00) >> 8;  // Green component
+            const b = hash & 0x0000FF;         // Blue component
+
+            // To make colors more distinct, ensure that the color components are not too similar
+            // Adjust the RGB values so that they are spread more evenly across the color spectrum
+            const adjustedR = (r + 85) % 256; // Offset to make sure it's more spread out
+            const adjustedG = (g + 170) % 256; // Different offset for green
+            const adjustedB = (b + 255) % 256; // Different offset for blue
+
+            // Convert the RGB components back into a hex color
+            const colorCode = ((adjustedR << 16) | (adjustedG << 8) | adjustedB).toString(16).padStart(6, '0');
+            return `#${colorCode}`;
+        }
+
+
+        // Function to create or update the disk chart
+        function createOrUpdateDiskChart(diskName, diskUsed, diskTotal) {
+            const sanitizedDiskName = sanitizeDiskName(diskName);
+            const chartDiv = document.createElement('div');
+            chartDiv.classList.add('col-md-4');
+            chartDiv.innerHTML = `
+            <div class="card">
+                <h5>${diskName}</h5>
+                <div id="disk-${sanitizedDiskName}-chart"></div>
+            </div>
+        `;
+            document.getElementById('disk-chart-container').appendChild(chartDiv);
+
+            const usedGB = (diskUsed / (1024 * 1024 * 1024)).toFixed(2);  // Convert bytes to GB
+            const totalGB = (diskTotal / (1024 * 1024 * 1024)).toFixed(2);  // Convert bytes to GB
+
+            // Get or generate color for the disk based on its name
+            const diskColor = getColorForDisk(diskName);
+
+            const diskChart = new ApexCharts(document.querySelector(`#disk-${sanitizedDiskName}-chart`), {
+                chart: { type: 'radialBar', height: 300 },
+                series: [parseFloat((diskUsed / diskTotal * 100).toFixed(2))], // Show percentage in radial chart
+                labels: [`${diskName} Usage GB`], // Display used and total in GB
+                plotOptions: {
+                    radialBar: {
+                        hollow: { size: '70%' },
+                        dataLabels: {
+                            value: {
+                                fontWeight: 'bold',
+                                color: '#fff',
+                                formatter: () => `${usedGB} GB / ${totalGB} GB`
+                            }
+                        }
+                    }
+                },
+                colors: [diskColor]  // Use generated color for each disk
+            });
+
+            diskChart.render();
+
+            // Update previous usage data
+            previousDiskUsage[diskName] = { used: diskUsed, total: diskTotal };
+        }
+
+        function fetchAgentData() {
+            fetch('/api/agents', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const configured_agents = data.configured_agents;
+                    delete data["configured_agents"];
+
+                    // Ensure only configured agents are present (same as overview.html)
+                    for (const id in data) {
+                        if (!configured_agents.hasOwnProperty(id)) {
+                            delete data[id];
+                        }
+                    }
+
+                    const agent = data[agentid];
+                    if (!agent) {
+                        document.body.innerHTML = '<h3 class="text-danger text-center">Agent not found or offline.</h3>';
+                        throw new Error('Agent not found');
+                    }
+
+                    // Update static info
+                    elements.hostname.textContent = agent.hostname;
+                    elements.ip.textContent = agent.ip;
+                    elements.cpu_model.textContent = agent.cpu_model;
+                    elements.cpu_cores.textContent = agent.cpu_cores;
+                    elements.gpu_model.textContent = agent.gpu_model;
+                    elements.uptime.textContent = formatUptime(agent.uptime);
+
+                    // Update charts
+                    cpuChart.updateSeries([parseFloat(agent.cpu_load)]);
+                    const memUsagePercent = (agent.used_mem / agent.total_mem) * 100;
+                    memoryChart.updateSeries([parseFloat(memUsagePercent.toFixed(2))]);
+
+                    // Disk charts
+                    agent.disk_info.forEach(disk => {
+                        const { fs, used, size } = disk;
+                        // Only update if disk usage has changed
+                        if (!previousDiskUsage[fs] || previousDiskUsage[fs].used !== used) {
+                            createOrUpdateDiskChart(fs, used, size);
+                        }
+                    });
+                })
+                .catch(err => console.error('Error fetching agent data:', err));
+        }
+
+        // Initial fetch and polling
+        fetchAgentData();
+        setInterval(fetchAgentData, 5000);
     </script>
+
 </body>
 </html>

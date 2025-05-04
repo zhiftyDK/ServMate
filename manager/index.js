@@ -2,18 +2,29 @@
 const express = require('express');
 const path = require('path');
 const manager = require('./modules/manager');
+const sshclient = require("./modules/sshclient"); // Import the sshclient module
 const authRoutes = require('./modules/auth');
 const { authenticateToken } = require('./modules/auth');
+const http = require('http'); // Import the http module
 
 const HTTP_PORT = 4500;
 
 manager.startManager({ verbose: true });
 
 const app = express();
+const server = http.createServer(app); // Create the server instance to pass to WebSocket
+
+// Use WebSocket server from sshclient.js
+server.on('upgrade', (request, socket, head) => {
+    sshclient.wss.handleUpgrade(request, socket, head, (ws) => {
+        sshclient.wss.emit('connection', ws, request); // Pass the WebSocket connection to the handler
+    });
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API: Auth routes
+// Routes
 app.use('/api', authRoutes);
 
 app.get('/api/agents', authenticateToken, (req, res) => {
@@ -52,6 +63,7 @@ app.post('/api/unconfigure-agent', authenticateToken, (req, res) => {
     }
 });
 
-app.listen(HTTP_PORT, () => {
+// Start the HTTP server and the WebSocket server
+server.listen(HTTP_PORT, () => {
     console.log(`🌐 Web UI + API server running at http://localhost:${HTTP_PORT}`);
 });
