@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 50000;
-const AGENTS_FILE = path.join(__dirname, 'agents.json');
-const CONFIGURED_AGENTS_FILE = path.join(__dirname, 'configured_agents.json');
+const AGENTS_FILE = path.join(__dirname, '../data', 'agents.json');
+const CONFIGURED_AGENTS_FILE = path.join(__dirname, '../data', 'configured_agents.json');
 const OFFLINE_TIMEOUT = 15000; // 15 sec
 
 let agents = {};

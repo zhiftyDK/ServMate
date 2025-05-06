@@ -1,2 +1,5 @@
 node_modules
 .env
+agents.json
+configured_agents.json
+user.db

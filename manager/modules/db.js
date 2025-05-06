@@ -2,7 +2,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, '..', 'user.db');
+const dbPath = path.join(__dirname, '../data', 'user.db');
 const db = new Database(dbPath);
 
 // Initialize the user table (only 1 user allowed)
