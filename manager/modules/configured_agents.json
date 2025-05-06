@@ -1,5 +1,12 @@
 {
+  "DESKTOP-SVB43VP:192.168.1.75": {
+    "custom_name": "Main PC",
+    "ssh_username": "test",
+    "ssh_password": "rzp53qpw"
+  },
   "raspberrypi:192.168.1.242": {
-    "custom_name": "Raspberry Pi"
+    "custom_name": "Raspberry Pi",
+    "ssh_username": "pi",
+    "ssh_password": "rzp53qpw"
   }
 }

@@ -32,14 +32,14 @@ app.get('/api/agents', authenticateToken, (req, res) => {
 });
 
 app.post('/api/configure-agent', authenticateToken, (req, res) => {
-    const { agentid, custom_name } = req.body;
+    const { agentid, custom_name, ssh_username, ssh_password } = req.body;
 
     if (!agentid || !custom_name) {
         return res.status(400).json({ message: "Missing agentid or custom_name in the request body." });
     }
 
     try {
-        manager.configureAgent(agentid, custom_name );
+        manager.configureAgent(agentid, custom_name, ssh_username, ssh_password);
         res.status(200).json({ message: `Agent ${agentid} configured successfully with name: ${custom_name}` });
     } catch (err) {
         console.error('Error configuring agent:', err);

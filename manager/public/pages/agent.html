@@ -62,7 +62,7 @@
             <!-- System Info Section -->
             <div class="col-md-6 card-container">
                 <div class="card h-100">
-                    <h5>System Info</h5>
+                    <h5 class="mb-4"><strong id="customname"></strong></h5>
                     <p><strong>Hostname:</strong> <span id="hostname"></span></p>
                     <p><strong>IP:</strong> <span id="ip"></span></p>
                     <p><strong>CPU:</strong> <span id="cpu_model"></span> (<span id="cpu_cores"></span> cores)</p>
@@ -71,7 +71,7 @@
                     <div class="h-100 d-flex align-items-end justify-content-end">
                         <button class="btn btn-outline-light mx-2 fw-bold" id="ssh"><i class="bi bi-terminal"></i> SSH</button>
                         <button class="btn btn-outline-danger mx-2 fw-bold"><i class="bi bi-arrow-clockwise"></i> Restart</button>
-                        <button class="btn btn-danger mx-2 fw-bold"><i class="bi bi-trash"></i> Unconfigure</button>
+                        <button class="btn btn-danger mx-2 fw-bold" id="unconfigure"><i class="bi bi-trash"></i> Unconfigure</button>
                     </div>
                 </div>
             </div>
@@ -103,6 +103,7 @@
 
         // Elements to be updated
         const elements = {
+            customname: document.getElementById('customname'),
             hostname: document.getElementById('hostname'),
             ip: document.getElementById('ip'),
             cpu_model: document.getElementById('cpu_model'),
@@ -110,14 +111,6 @@
             gpu_model: document.getElementById('gpu_model'),
             uptime: document.getElementById('uptime')
         };
-
-        document.getElementById("ssh").addEventListener("click", () => {
-            const ip = elements.ip.innerText;
-            const username = prompt("What is ssh username?");
-            const password = prompt("What is ssh password?");
-            const page = `sshclient.html?ip=${ip},username=${username},password=${password}`;
-            window.parent.postMessage({ page: page }, '*');
-        });
 
         // Store disk colors and previous usage once generated
         const diskColors = {};
@@ -262,6 +255,26 @@
             previousDiskUsage[diskName] = { used: diskUsed, total: diskTotal };
         }
 
+        function unconfigureAgent(agentid) {
+            fetch('/api/unconfigure-agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify({ agentid: agentid })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        alert('Failed to unconfigure agent.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error unconfiguring agent:', err);
+                    alert('Error unconfiguring agent.');
+                });
+        }
+
         function fetchAgentData() {
             fetch('/api/agents', {
                 headers: {
@@ -280,6 +293,12 @@
                         }
                     }
 
+
+                    const configured_agent = configured_agents[agentid];
+                    if (!configured_agent) {
+                        document.body.innerHTML = '<h3 class="text-danger text-center">Agent not configured.</h3>';
+                        throw new Error('Agent not found');
+                    }
                     const agent = data[agentid];
                     if (!agent) {
                         document.body.innerHTML = '<h3 class="text-danger text-center">Agent not found or offline.</h3>';
@@ -287,12 +306,26 @@
                     }
 
                     // Update static info
+                    elements.customname.textContent = configured_agent.custom_name;
                     elements.hostname.textContent = agent.hostname;
                     elements.ip.textContent = agent.ip;
                     elements.cpu_model.textContent = agent.cpu_model;
                     elements.cpu_cores.textContent = agent.cpu_cores;
                     elements.gpu_model.textContent = agent.gpu_model;
                     elements.uptime.textContent = formatUptime(agent.uptime);
+
+                    document.getElementById("ssh").addEventListener("click", () => {
+                        const ip = agent.ip;
+                        const username = configured_agent.ssh_username;
+                        const password = configured_agent.ssh_password;
+                        const sshpage = `sshclient.html?ip=${ip},username=${username},password=${password}`;
+                        window.parent.postMessage({ ssh: sshpage, agent: agent, modalid: "sshModal" }, '*');
+                    });
+
+                    document.getElementById("unconfigure").addEventListener("click", () => {
+                        unconfigureAgent(`${agent.hostname}:${agent.ip}`);
+                        window.parent.postMessage({ page: "overview.html" }, '*');
+                    });
 
                     // Update charts
                     cpuChart.updateSeries([parseFloat(agent.cpu_load)]);

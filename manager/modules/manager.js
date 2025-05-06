@@ -18,26 +18,35 @@ function loadAgents() {
     }
 }
 
-function configureAgent(agentid, customname) {
-    const toSave = {};
-    for (const id in agents) {
-        if (agentid == id) {
-            toSave[id] = {
-            custom_name: customname
-            };
-        }
+function configureAgent(agentid, customname, sshusername, sshpassword) {
+    let existingAgents = {};
+
+    // Check if the configuration file exists
+    if (fs.existsSync(CONFIGURED_AGENTS_FILE)) {
+        // If it exists, read and parse its contents
+        existingAgents = JSON.parse(fs.readFileSync(CONFIGURED_AGENTS_FILE, 'utf-8'));
     }
-    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(toSave, null, 2));
+
+    // Update or add the agent with the new custom name
+    existingAgents[agentid] = {
+        custom_name: customname,
+        ssh_username: sshusername,
+        ssh_password: sshpassword
+    };
+
+    // Save the updated configuration back to the file
+    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(existingAgents, null, 2));
 }
 
 function unconfigureAgent(agentid) {
-    const toSave = {};
-    for (const id in agents) {
-        if (agentid !== id) {
-            toSave[id] = agents[id];
-        }
-    }
-    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(toSave, null, 2));
+    // Read the current configuration from the file
+    const existingAgents = JSON.parse(fs.readFileSync(CONFIGURED_AGENTS_FILE, 'utf-8'));
+
+    // Remove the agent with the specified agentid
+    delete existingAgents[agentid];
+
+    // Save the updated configuration back to the file
+    fs.writeFileSync(CONFIGURED_AGENTS_FILE, JSON.stringify(existingAgents, null, 2));
 }
 
 // Save static agent info to disk

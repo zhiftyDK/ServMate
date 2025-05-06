@@ -61,7 +61,7 @@
         .agent-list {
             overflow-y: auto;
             padding: 1rem;
-            max-height: 60vh;
+            max-height: 68vh;
         }
 
         .agent-card {
@@ -107,8 +107,7 @@
         </div>
 
         <!-- Agent List Section -->
-        <div class="agent-list">
-            <div id="agents-container"></div>
+        <div class="agent-list row" id="agents-container">
         </div>
     </div>
 
@@ -148,7 +147,7 @@
                             <p class="text-white"><strong>CPU:</strong> ${agent.cpu_model}</p>
                             <p class="text-white"><strong>GPU:</strong> ${agent.gpu_model}</p>
                             <p class="text-white"><strong>Status:</strong> <span class="${statusClass}">${agent.status}</span></p>
-                            <button class="btn btn-success btn-sm btn-configure" data-id="${agent.hostname}:${agent.ip}">Configure</button>
+                            <button class="btn btn-success btn-sm btn-configure" data-id='${JSON.stringify(agent)}'>Configure</button>
                         </div>
                     `;
                             agentsContainer.innerHTML += agentCard;
@@ -157,37 +156,12 @@
                         // Attach event listeners to "Configure" buttons
                         document.querySelectorAll('.btn-configure').forEach(button => {
                             button.addEventListener('click', () => {
-                                const agentid = button.getAttribute('data-id');
-                                const customName = prompt('Enter a custom name for this agent:');
-                                if (customName && customName.trim() !== '') {
-                                    configureAgent(agentid, customName.trim());
-                                }
+                                const agent = button.getAttribute('data-id');
+                                window.parent.postMessage({ agent: JSON.parse(agent), modalid: "configureModal" }, '*');
                             });
                         });
                     })
                     .catch(err => console.error('Error fetching discovered agents:', err));
-            }
-
-            function configureAgent(agentid, customName) {
-                fetch('/api/configure-agent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
-                    },
-                    body: JSON.stringify({ agentid: agentid, custom_name: customName })
-                })
-                    .then(response => {
-                        if (response.ok) {
-                            fetchDiscoveredAgents(); // Refresh list
-                        } else {
-                            alert('Failed to configure agent.');
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Error configuring agent:', err);
-                        alert('Error configuring agent.');
-                    });
             }
 
             fetchDiscoveredAgents();

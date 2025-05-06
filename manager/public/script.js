@@ -74,6 +74,26 @@ document.addEventListener('DOMContentLoaded', () => {
   iframe.src = '/pages/overview.html';
 });
 
+function configureAgent(agentid, customname, sshusername, sshpassword) {
+    fetch('/api/configure-agent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ agentid: agentid, custom_name: customname, ssh_username: sshusername, ssh_password: sshpassword })
+    })
+        .then(response => {
+            if (!response.ok) {
+                alert('Failed to configure agent.');
+            }
+        })
+        .catch(err => {
+            console.error('Error configuring agent:', err);
+            alert('Error configuring agent.');
+        });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const iframe = document.getElementById('contentIframe');
 
@@ -83,14 +103,43 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const { page } = event.data;
+    const { page, modalid, ssh, agent } = event.data;
+    let modal;
 
     if (page) {
-      iframe.src = '/pages/' + page;
+      iframe.src = "/pages/" + page;
+    }
+    if (modalid) {
+        modal = new bootstrap.Modal(document.getElementById(modalid));
+        modal.show();
+    }
+    if (modalid == "configureModal" && agent) {
+        document.getElementById("custom-name").value = "";
+        document.getElementById("ssh-username").value = "";
+        document.getElementById("ssh-password").value = "";
+        document.getElementById("configureModalLabel").textContent = "Configure: " + agent.hostname;
+        const configurebtn = document.getElementById("configureBtn");
+
+        // Remove old listeners by cloning (super clean)
+        const newConfigureBtn = configurebtn.cloneNode(true);
+        configurebtn.parentNode.replaceChild(newConfigureBtn, configurebtn);
+
+        newConfigureBtn.addEventListener("click", () => {
+            const customname = document.getElementById("custom-name").value;
+            const sshusername = document.getElementById("ssh-username").value;
+            const sshpassword = document.getElementById("ssh-password").value;
+            configureAgent(`${agent.hostname}:${agent.ip}`, customname, sshusername, sshpassword);
+            iframe.src = "/pages/discover.html";
+            modal.hide();
+        });
+    }
+
+    if (modalid == "sshModal" && ssh && agent) {
+        document.getElementById("sshModalLabel").textContent = "SSH Session: " + agent.ip;
+        document.getElementById("sshIframe").src = "/pages/" + ssh;
     }
   });
 
   // Optional: Load a default page on first load
   iframe.src = '/pages/overview.html';
 });
-
