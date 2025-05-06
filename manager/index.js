@@ -10,9 +10,19 @@ const http = require('http'); // Import the http module
 
 const HTTP_PORT = 4500;
 
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+try {
+    const fs = require('fs');
+    const path = require('path');
+
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+        console.log('Folder created:', dataDir);
+    } else {
+        console.log('Folder already exists:', dataDir);
+    }
+} catch (err) {
+    console.error('Error creating folder:', err);
 }
 
 manager.startManager({ verbose: true });
