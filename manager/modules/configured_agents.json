@@ -1,5 +1,5 @@
 {
-  "DESKTOP-SVB43VP:192.168.1.75": {
-    "custom_name": "Main PC"
+  "raspberrypi:192.168.1.242": {
+    "custom_name": "Raspberry Pi"
   }
 }

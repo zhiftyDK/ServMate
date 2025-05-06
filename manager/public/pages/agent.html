@@ -6,6 +6,7 @@
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -19,6 +20,14 @@
             background-color: transparent;
             color: #fff;
             font-family: system-ui, sans-serif;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
         }
 
         /* Container for the entire page */
@@ -31,8 +40,7 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             background-color: rgba(255, 255, 255, 0.1);
-            margin-bottom: 1rem;
-            padding: 1.5rem;
+            padding: 1.3rem;
             color: #fff;
         }
 
@@ -41,52 +49,47 @@
             cursor: pointer;
         }
 
-        /* Chart section styling */
-        .chart-container {
-            margin-top: 1rem;
-        }
-
-        /* Mobile adjustments */
-        @media (max-width: 768px) {
-            .chart-container {
-                margin-top: 1rem;
-            }
+        .card-container {
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 
 <body>
     <div class="container-fluid">
-        <!-- System Info Section -->
-        <div class="card">
-            <h5>System Info</h5>
-            <p><strong>Hostname:</strong> <span id="hostname"></span></p>
-            <p><strong>IP:</strong> <span id="ip"></span></p>
-            <p><strong>CPU:</strong> <span id="cpu_model"></span> (<span id="cpu_cores"></span> cores)</p>
-            <p><strong>GPU:</strong> <span id="gpu_model"></span></p>
-            <p><strong>Uptime:</strong> <span id="uptime"></span></p>
-        </div>
-
         <!-- Charts Section -->
-        <div class="row chart-container">
-            <div class="col-md-6">
-                <div class="card">
+        <div class="row chart-container" id="disk-chart-container">
+            <!-- System Info Section -->
+            <div class="col-md-6 card-container">
+                <div class="card h-100">
+                    <h5>System Info</h5>
+                    <p><strong>Hostname:</strong> <span id="hostname"></span></p>
+                    <p><strong>IP:</strong> <span id="ip"></span></p>
+                    <p><strong>CPU:</strong> <span id="cpu_model"></span> (<span id="cpu_cores"></span> cores)</p>
+                    <p><strong>GPU:</strong> <span id="gpu_model"></span></p>
+                    <p><strong>Uptime:</strong> <span id="uptime"></span></p>
+                    <div class="h-100 d-flex align-items-end justify-content-end">
+                        <button class="btn btn-outline-light mx-2 fw-bold" id="ssh"><i class="bi bi-terminal"></i> SSH</button>
+                        <button class="btn btn-outline-danger mx-2 fw-bold"><i class="bi bi-arrow-clockwise"></i> Restart</button>
+                        <button class="btn btn-danger mx-2 fw-bold"><i class="bi bi-trash"></i> Unconfigure</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 card-container">
+                <div class="card h-100">
                     <h5>CPU Load</h5>
                     <div id="cpu-chart"></div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card">
+            <div class="col-md-6 card-container">
+                <div class="card h-100">
                     <h5>Memory Usage</h5>
                     <div id="memory-chart"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Disk Usage Section -->
-        <div class="row chart-container" id="disk-chart-container">
-            <!-- Disk charts will be injected here dynamically -->
-        </div>
     </div>
 
     <script>
@@ -107,6 +110,14 @@
             gpu_model: document.getElementById('gpu_model'),
             uptime: document.getElementById('uptime')
         };
+
+        document.getElementById("ssh").addEventListener("click", () => {
+            const ip = elements.ip.innerText;
+            const username = prompt("What is ssh username?");
+            const password = prompt("What is ssh password?");
+            const page = `sshclient.html?ip=${ip},username=${username},password=${password}`;
+            window.parent.postMessage({ page: page }, '*');
+        });
 
         // Store disk colors and previous usage once generated
         const diskColors = {};
@@ -210,9 +221,10 @@
         function createOrUpdateDiskChart(diskName, diskUsed, diskTotal) {
             const sanitizedDiskName = sanitizeDiskName(diskName);
             const chartDiv = document.createElement('div');
-            chartDiv.classList.add('col-md-4');
+            chartDiv.classList.add('col-md-3');
+            chartDiv.classList.add('card-container');
             chartDiv.innerHTML = `
-            <div class="card">
+            <div class="card h-100">
                 <h5>${diskName}</h5>
                 <div id="disk-${sanitizedDiskName}-chart"></div>
             </div>

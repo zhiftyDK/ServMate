@@ -8,15 +8,35 @@
     "disk_info": [
       {
         "fs": "C:",
-        "used": 775907864576,
+        "used": 779238322176,
         "size": 1022037286912
       },
       {
         "fs": "E:",
-        "used": 448119599104,
+        "used": 448120004608,
         "size": 500106784768
       }
     ],
     "gpu_model": "NVIDIA GeForce RTX 2060"
+  },
+  "raspberrypi:192.168.1.242": {
+    "hostname": "raspberrypi",
+    "ip": "192.168.1.242",
+    "cpu_model": "Cortex-A53",
+    "cpu_cores": 4,
+    "total_mem": 942772224,
+    "disk_info": [
+      {
+        "fs": "/dev/mmcblk0p2",
+        "used": 4557209600,
+        "size": 251255689216
+      },
+      {
+        "fs": "/dev/mmcblk0p1",
+        "used": 190360576,
+        "size": 528592896
+      }
+    ],
+    "gpu_model": "VideoCore IV"
   }
 }

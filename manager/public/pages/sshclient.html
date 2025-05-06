@@ -12,6 +12,7 @@
         body {
             background-color: black;
             padding: 1rem;
+            overflow: hidden;
         }
 
         #terminal {
@@ -37,8 +38,8 @@
         // Your perfect reference dimensions
         const perfectWidth = 1920;
         const perfectHeight = 911;
-        const perfectCols = 210;
-        const perfectRows = 50;
+        const perfectCols = 208;
+        const perfectRows = 48;
 
         const heightPerRow = perfectHeight / perfectRows;
         const widthPerCol = perfectWidth / perfectCols;
@@ -58,31 +59,60 @@
         // Initial fit
         fitTerminal();
 
-        // Set up the WebSocket connection to the server
-        const socket = new WebSocket('ws://localhost:4500'); // Your server URL
+        function parseUrlParams() {
+            const query = window.location.search.substring(1); // remove "?"
+            const params = {};
+            if (!query) return params;
 
-        socket.onopen = () => {
-            terminal.writeln("Connected to SSH server. You can start typing commands...");
-        };
+            const pairs = query.split(',');
+            pairs.forEach(pair => {
+                const [key, value] = pair.split('=');
+                if (key && value) {
+                    params[key.toLowerCase()] = decodeURIComponent(value);
+                }
+            });
 
-        socket.onerror = (err) => {
-            terminal.writeln(`Error: ${err.message}`);
-        };
+            return params;
+        }
 
-        socket.onmessage = (event) => {
-            terminal.write(event.data);
-        };
+        const params = parseUrlParams();
 
-        socket.onclose = () => {
-            terminal.writeln("Connection closed.");
-        };
+        if (params.ip && params.username && params.password) {
+            terminal.writeln(`Connecting to ${params.ip} as ${params.username}...`);
 
-        // Send user input to WebSocket (SSH server)
-        terminal.onData(data => {
-            if (socket.readyState === WebSocket.OPEN) {
-                socket.send(data);
-            }
-        });
+            const socket = new WebSocket('ws://localhost:4500');
+
+            socket.onopen = () => {
+                const sshConfig = {
+                    host: params.ip,
+                    port: 22,
+                    username: params.username,
+                    password: params.password
+                };
+                socket.send(JSON.stringify(sshConfig));
+            };
+
+            socket.onmessage = (event) => {
+                terminal.write(event.data);
+            };
+
+            socket.onclose = () => {
+                terminal.writeln("\r\nConnection closed.");
+            };
+
+            socket.onerror = (err) => {
+                terminal.writeln(`\r\nError: ${err.message}`);
+            };
+
+            terminal.onData(data => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(data);
+                }
+            });
+        } else {
+            terminal.writeln("Missing required URL params: ?ip=... ,username=... ,password=...");
+            terminal.writeln("Example: sshclient.html?ip=192.168.1.242,username=pi,password=test123");
+        }
     </script>
 
 </body>

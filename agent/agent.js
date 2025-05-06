@@ -7,38 +7,6 @@ const AGENT_BROADCAST_INTERVAL = 3000; // 3 seconds
 const BROADCAST_PORT = 50000;
 const BROADCAST_ADDRESS = '255.255.255.255';
 
-let lastIdle = 0;
-let lastTotal = 0;
-
-function getManualCpuLoad(intervalMs = 100) {
-    return new Promise(resolve => {
-        const startMeasures = os.cpus();
-
-        setTimeout(() => {
-        const endMeasures = os.cpus();
-
-        let idleDiff = 0;
-        let totalDiff = 0;
-
-        for (let i = 0; i < startMeasures.length; i++) {
-            const start = startMeasures[i].times;
-            const end = endMeasures[i].times;
-
-            const idle = end.idle - start.idle;
-            const total = Object.keys(end).reduce((acc, type) => {
-            return acc + (end[type] - start[type]);
-            }, 0);
-
-            idleDiff += idle;
-            totalDiff += total;
-        }
-
-        const usage = (1 - idleDiff / totalDiff) * 100;
-        resolve(usage.toFixed(1));
-        }, intervalMs);
-    });
-}
-
 async function gatherStaticInfo() {
     const disks = await si.fsSize();
     const filteredDisks = disks.map(disk => ({
@@ -70,8 +38,9 @@ async function gatherStaticInfo() {
 }
 
 async function gatherDynamicInfo() {
+    const load = await si.currentLoad();
     return {
-        cpu_load: await getManualCpuLoad(),
+        cpu_load: load.currentLoad.toFixed(1),
         used_mem: os.totalmem() - os.freemem(),
         uptime: Math.floor(os.uptime())
     };
