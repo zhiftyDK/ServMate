@@ -1,6 +1,7 @@
 // index.js
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const manager = require('./modules/manager');
 const sshclient = require("./modules/sshclient"); // Import the sshclient module
 const authRoutes = require('./modules/auth');
@@ -8,6 +9,11 @@ const { authenticateToken } = require('./modules/auth');
 const http = require('http'); // Import the http module
 
 const HTTP_PORT = 4500;
+
+const dataDir = path.join(__dirname, '/data');
+if (!fs.existsSync(dataDir)){
+    fs.mkdirSync(dataDir);
+}
 
 manager.startManager({ verbose: true });
 
