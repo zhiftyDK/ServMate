@@ -10,7 +10,7 @@ const http = require('http'); // Import the http module
 
 const HTTP_PORT = 4500;
 
-const dataDir = path.join(__dirname, '/data');
+const dataDir = "./data"
 if (!fs.existsSync(dataDir)){
     fs.mkdirSync(dataDir);
 }
