@@ -15,8 +15,8 @@ function getUserByUsername(username) {
 // REGISTER
 router.post('/register', async (req, res) => {
     const { username, password, email } = req.body;
-    if (!username || !password || !email) {
-        return res.status(400).json({ error: 'Username, password, and email are required.' });
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Username and password are required.' });
     }
 
     const existingUser = getUserByUsername(username);

@@ -1,7 +1,7 @@
 // index.js
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
 const manager = require('./modules/manager');
 const sshclient = require("./modules/sshclient"); // Import the sshclient module
 const authRoutes = require('./modules/auth');
@@ -24,6 +24,7 @@ server.on('upgrade', (request, socket, head) => {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
 // Routes
 app.use('/api', authRoutes);
